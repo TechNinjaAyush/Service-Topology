@@ -10,21 +10,36 @@ import (
 	"github.com/google/generative-ai-go/genai"
 )
 
-func DFStraversal(glitch_service string, current string, reverseDepend map[string][]string, visited_services map[string]bool, impacted_services map[string][]string) {
+func DFStraversal(glitch_service string, current string, reverseDepend map[string][]string, visited_services map[string]bool, onStack map[string]bool, impacted_services map[string][]string) {
 
 	visited_services[current] = true
+	onStack[current] = true
 
 	dependents := reverseDepend[current]
 
 	for _, dep := range dependents {
 
-		impacted_services[glitch_service] = append(impacted_services[glitch_service], dep)
+		if onStack[dep] {
+			fmt.Printf("⚠️ Cycle detected: %s -> %s\n", current, dep)
+		}
+
+		// Ensure we don't add duplicates to the impacted services slice
+		alreadyImpacted := false
+		for _, v := range impacted_services[glitch_service] {
+			if v == dep {
+				alreadyImpacted = true
+				break
+			}
+		}
+		if !alreadyImpacted {
+			impacted_services[glitch_service] = append(impacted_services[glitch_service], dep)
+		}
 
 		if !visited_services[dep] {
-			DFStraversal(glitch_service, dep, reverseDepend, visited_services, impacted_services)
+			DFStraversal(glitch_service, dep, reverseDepend, visited_services, onStack, impacted_services)
 		}
 	}
-
+	onStack[current] = false
 }
 
 func GenerateRCAReport(ctx context.Context, client *genai.Client, root string, impacted []string, meta map[string]models.ServiceGraph) string {
@@ -32,7 +47,7 @@ func GenerateRCAReport(ctx context.Context, client *genai.Client, root string, i
 		return "AI Analysis unavailable: Client not initialized"
 	}
 
-	model := client.GenerativeModel("gemini-2.5-flash")
+	model := client.GenerativeModel("gemini-1.5-flash")
 
 	// Fetch the specific metadata from your metaLookup map
 	serviceInfo, exists := meta[root]
@@ -63,13 +78,17 @@ func GenerateRCAReport(ctx context.Context, client *genai.Client, root string, i
 
 	return "No specific RCA generated."
 }
-func DFS(client *genai.Client, reverseDepend map[string][]string, healthMap map[string]float32, ch chan models.Payload, ctx context.Context) {
+func DFS(client *genai.Client, reverseDepend map[string][]string, healthMap map[string]float32, ch chan models.Payload, ctx context.Context, services []models.ServiceGraph) {
 	defer close(ch)
 
 	rand.Seed(time.Now().UnixNano())
 	var pairs []string
 
 	metaLookup := make(map[string]models.ServiceGraph)
+	for _, s := range services {
+		metaLookup[s.Name] = s
+	}
+
 	for k := range healthMap {
 		pairs = append(pairs, k)
 	}
@@ -99,9 +118,10 @@ func DFS(client *genai.Client, reverseDepend map[string][]string, healthMap map[
 			fmt.Printf("Applying DFS on %s\n", pick_service)
 
 			visited_services := make(map[string]bool)
+			onStack := make(map[string]bool)
 			impacted_services := make(map[string][]string)
 
-			DFStraversal(pick_service, pick_service, reverseDepend, visited_services, impacted_services)
+			DFStraversal(pick_service, pick_service, reverseDepend, visited_services, onStack, impacted_services)
 
 			alpha := float32(0.3)
 
@@ -141,6 +161,7 @@ func DFS(client *genai.Client, reverseDepend map[string][]string, healthMap map[
 		case <-time.After(4 * time.Second):
 		}
 	}
+
 
 	fmt.Println("⏹️  DFS completed, keeping channel open...")
 	time.Sleep(10 * time.Second)

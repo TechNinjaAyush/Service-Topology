@@ -17,7 +17,7 @@ func ConnectToIncidents() (*mongo.Database, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("error loading .env: %v", err)
-	}
+	} 
 
 	fmt.Printf("mongourl is %s", MONGO_URL)
 
