@@ -113,7 +113,10 @@ func JsonMarshalling(c *gin.Context) {
 
 	fmt.Println("📊 Sent initial graph structure")
 
-	apiKey := "AIzaSyBPv8vtdFJxApayRmP2_hNQikunnMdfE4c"
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	if apiKey == "" {
+		apiKey = "AIzaSyBPv8vtdFJxApayRmP2_hNQikunnMdfE4c" // Fallback if needed, though not recommended
+	}
 	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
 
 	if err != nil {
@@ -122,7 +125,7 @@ func JsonMarshalling(c *gin.Context) {
 
 	defer client.Close()
 
-	go DFS(client, reverseDependency, healthMap, ch1, ctx)
+	go DFS(client, reverseDependency, healthMap, ch1, ctx, deps)
 
 	for {
 
