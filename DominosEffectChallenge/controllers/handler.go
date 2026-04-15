@@ -64,13 +64,20 @@ func JsonMarshalling(c *gin.Context) {
 	c.Writer.Header().Set("Connection", "keep-alive")
 	c.Writer.Header().Set("X-Accel-Buffering", "no")
 
+	// Explicitly write the header to ensure Content-Type is sent immediately
+	c.Writer.WriteHeader(http.StatusOK)
+	c.Writer.Flush()
+
 	ch1 := make(chan models.Payload, 10)
 	filepath := "./sample/service.json"
 
 	file, err := os.ReadFile(filepath)
 
 	if err != nil {
-		log.Fatalf("Error in opening file\n")
+		log.Printf("ERROR: Failed to open file: %v\n", err)
+		fmt.Fprintf(c.Writer, "data: {\"error\": \"Internal server error: failed to open dependency file\"}\n\n")
+		c.Writer.Flush()
+		return
 	}
 
 	data := string(file)
@@ -78,10 +85,9 @@ func JsonMarshalling(c *gin.Context) {
 
 	var deps []models.ServiceGraph
 	if err := json.Unmarshal(file, &deps); err != nil {
-		log.Printf("ERROR:Failed to unmarshal json:%v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"Error": err.Error(),
-		})
+		log.Printf("ERROR: Failed to unmarshal json: %v\n", err)
+		fmt.Fprintf(c.Writer, "data: {\"error\": \"Internal server error: invalid json format\"}\n\n")
+		c.Writer.Flush()
 		return
 	}
 
