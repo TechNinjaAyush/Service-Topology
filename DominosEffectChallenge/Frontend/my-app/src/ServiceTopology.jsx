@@ -5,7 +5,7 @@ import IncidentPipeline from './components/IncidentPipeline';
 import HeaderOverlay from './components/HeaderOverlay';
 
 const ServiceTopology = () => {
-  const { graphData, events, healthMap } = useTopology('http://localhost:8080/service');
+  const { graphData, events, healthMap } = useTopology('https://domino-effect-challenge-5.onrender.com');
 
   return (
     <div className="flex flex-col lg:flex-row h-screen w-full bg-[#02040a] text-white overflow-hidden relative selection:bg-blue-500/30">

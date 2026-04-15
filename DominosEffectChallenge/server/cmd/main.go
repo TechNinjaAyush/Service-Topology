@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"servicedependency/controllers"
 	"time"
 
@@ -26,7 +27,7 @@ func main() {
 
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"}, // The React Port
+		AllowOrigins:     []string{os.Getenv("FRONTEND_URL")}, // The React Port
 		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Cache-Control"}, // ✅ Added more headers
 		ExposeHeaders:    []string{"Content-Length"},
