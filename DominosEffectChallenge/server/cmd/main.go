@@ -26,7 +26,7 @@ func main() {
 
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"https://project-1-i5eb.vercel.app "}, // The React Port
+		AllowOrigins:     []string{"https://service-topology.vercel.app"}, // The React Port
 		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Cache-Control"}, // ✅ Added more headers
 		ExposeHeaders:    []string{"Content-Length"},
